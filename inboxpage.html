@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple email inbox page</title>
+  <link href="https://netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="grid email">
+          <div class="grid-body">
+            <div class="row">
+              <div class="col-md-3">
+                <h2 class="grid-title"><i class="fa fa-inbox"></i> Welcome</h2>
+                <a class="btn btn-block btn-primary" data-toggle="modal" data-target="#compose-modal">
+                  <i class="fa fa-pencil"></i>&nbsp;&nbsp;NEW MESSAGE
+                </a>
+                <hr>
+                <div>
+                  <ul class="nav nav-pills nav-stacked">
+                    <li class="active"><a href="#"><i class="fa fa-inbox"></i> Inbox (14)</a></li>
+                    <li><a href="#"><i class="fa fa-star"></i> help</a></li>
+                  </ul>
+                  <button id="logout-btn" class="btn btn-block btn-danger">Logout</button> <!-- Logout button -->
+                </div>
+              </div>
+              <div class="col-md-9">
+                <h4>Files <span id="user-email"></span></h4>
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th></th>
+                      <th></th>
+                      <th>Name</th>
+                      <th>Subject</th>
+                      <th>Time</th>
+                      <th>File</th> <!-- New column for file name -->
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Email rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCOQetfF1-4CH9lMecbVfTSn87yPPKxWzQ",
+      authDomain: "august-outlet-377807.firebaseapp.com",
+      projectId: "august-outlet-377807",
+      storageBucket: "august-outlet-377807.appspot.com",
+      messagingSenderId: "571118008986",
+      appId: "1:571118008986:web:a5e3df52c93a1ff8eefd23"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = app.firestore();
+
+    // Function to handle the login process
+    const handleLogin = () => {
+      const emailInput = document.getElementById('email').value;
+      const passwordInput = document.getElementById('password').value;
+
+      signInWithEmailAndPassword(auth, emailInput, passwordInput)
+        .then((userCredential) => {
+          // Signed in
+          const user = userCredential.user;
+          console.log(user);
+
+          // Update the email address and retrieve file names
+          const email = user.email;
+          document.getElementById('user-email').innerText = email;
+          retrieveFileNames(email);
+        })
+        .catch((error) => {
+          // Error occurred
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          console.log(errorCode, errorMessage);
+        });
+    };
+
+    // Function to handle the logout process
+    const handleLogout = () => {
+      signOut(auth)
+        .then(() => {
+          // Redirect to index.html after logout
+          window.location.href = "index.html";
+        })
+        .catch((error) => {
+          // Error occurred during logout
+          console.log(error);
+        });
+    };
+
+    // Add event listener to the login button
+    const loginBtn = document.getElementById('login-btn');
+    loginBtn.addEventListener('click', handleLogin);
+
+    // Add event listener to the logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn.addEventListener('click', handleLogout);
+
+    // Function to retrieve file names based on user's email
+    const retrieveFileNames = (email) => {
+      // Query the 'files' collection for documents with matching email
+      db.collection('files').where('email', '==', email)
+        .get()
+        .then((querySnapshot) => {
+          const fileNames = [];
+
+          // Iterate through the query snapshot and extract file names
+          querySnapshot.forEach((doc) => {
+            const fileName = doc.data().fileName;
+            fileNames.push(fileName);
+          });
+
+          const tbody = document.querySelector('tbody');
+          tbody.innerHTML = ''; // Clear existing rows
+
+          // Generate HTML rows for each file name
+          fileNames.forEach((fileName, index) => {
+            const row = `
+              <tr>
+                <td>${index + 1}</td>
+                <td></td>
+                <td></td>
+                <td>Name</td>
+                <td>Subject</td>
+                <td>Time</td>
+                <td>${fileName}</td>
+              </tr>
+            `;
+            tbody.innerHTML += row;
+          });
+        })
+        .catch((error) => {
+          console.log('Error getting file names:', error);
+        });
+    };
+
+    // Example usage: retrieve file names for a user
+    const user = auth.currentUser;
+    if (user) {
+      const email = user.email;
+      document.getElementById('user-email').innerText = email;
+      retrieveFileNames(email);
+    }
+  </script>
+
+  <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+  <script src="https://netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+</body>
+
+</html>
